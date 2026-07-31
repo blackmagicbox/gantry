@@ -1,5 +1,5 @@
 ## Goal
-A from-scratch block-stacking game re-imagined, fully playable offline as a single-player game, with online multiplayer limited to duels and tournaments. Client: Kotlin Multiplatform + Compose Multiplatform, Android-first, sharing all game logic across platforms — the only per-platform variation is login (Google/Apple/email) and, later, optional Game Center/Play Games integration. Backend: Go microservices on GKE Autopilot, handling matchmaking, duel/tournament session sync, and leaderboards.
+A from-scratch where you are a Gantry Crane operator that needs to load cargo ships with puzzeling container shapes, fully playable offline as a single-player game, with online multiplayer limited to duels and tournaments. Client: Kotlin Multiplatform + Compose Multiplatform, Android-first, sharing all game logic across platforms — the only per-platform variation is login (Google/Apple/email) and, later, optional Game Center/Play Games integration. Backend: Go microservices on GKE Autopilot, handling matchmaking, duel/tournament session sync, and leaderboards.
 
 ## Services
 ### matchmaking-service
