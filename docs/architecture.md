@@ -16,6 +16,7 @@ A block-stacking game where you are a Gantry Crane operator that needs to load c
 **Owns**: computing and storing ELO/rating changes from reported duel results, tracking scores within a ladder/season window, ranking by rating + windowed points, and displaying standings (including tournament framing as a season window).
 
 **Does not own**: deciding who won a duel or when it ends (duel-service) leaderboard-service only receives the final result and score, it doesn't observe or judge the match itself.
+
 ### `auth-service`
 **Owns**: account existence and credentials (email/provider ID), issuing and validating access tokens that other services use to identify which player is making a request.
 
