@@ -2,27 +2,27 @@ syntax = "proto3";
 package gantry.leaderboard.v1;
 
 service LeaderboardService {
-    rpc UpdateLeaderboard(UpdateLeaderBoardRequest) returns (UpdateLeaderBoardResponse);
+    rpc UpdateLeaderboard(UpdateLeaderboardRequest) returns (UpdateLeaderboardResponse);
 }
 
 enum WinningCondition {
     WINNING_CONDITION_UNSPECIFIED = 0;
-    KNOCKOUT = 1;
-    QUIT = 2;
-    TIMEOUT = 3;
+    WINNING_CONDITION_KNOCKOUT = 1;
+    WINNING_CONDITION_QUIT = 2;
+    WINNING_CONDITION_TIMEOUT = 3;
 }
-message UpdateLeaderBoardRequest {
+message UpdateLeaderboardRequest {
     string player_1_id = 1;
     string player_2_id = 2;
     int32 player_1_score = 3;
     int32 player_2_score = 4;
     string winner = 5;
-    WinningCondition winningCondition = 6;
+    WinningCondition winning_condition = 6;
     string match_id = 7;
 }
 
-message UpdateLeaderBoardResponse {
-    WinningCondition winningCondition = 1;
+message UpdateLeaderboardResponse {
+    WinningCondition winning_condition = 1;
     int32 player_1_score = 2;
     int32 player_2_score = 3;
 }
