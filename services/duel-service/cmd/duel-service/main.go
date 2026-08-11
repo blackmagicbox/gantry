@@ -12,6 +12,14 @@ import (
 )
 
 func main() {
+	health_port, ok := os.LookupEnv("HEALTH_PORT")
+	if !ok {
+		slog.Error("HEALTH_PORT is not set.")
+		os.Exit(1)
+	} else if health_port == "" {
+		health_port = "8080"
+	}
+
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		slog.Error("PORT is not set.")
@@ -30,17 +38,19 @@ func main() {
 	})
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%s", port),
+		Addr:    fmt.Sprintf(":%s", health_port),
 		Handler: mux,
 	}
 
 	go func() {
-		slog.Info("Starting duel-service", "port", port)
+		slog.Info("Starting duel-service", "health_port", health_port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed to start", "error", err)
 			os.Exit(1)
 		}
 	}()
+
+	slog.Info("gRPC service running on port:", "port", port)
 
 	<-ctx.Done()
 	slog.Info("Shutdown signal received")
