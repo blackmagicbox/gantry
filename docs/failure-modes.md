@@ -20,3 +20,12 @@ dropped client is out of scope for now.)
 UpdateLeaderboard retries: same idempotency_key pattern as TriggerDuel — a
 retry with the same match_id/key returns the already-recorded rating
 change instead of double-counting.
+
+## `duel-service` - Known Limitations
+
+Idempotency key persistence: idempotency_key state (TriggerDuel) lives in
+an in-memory map only. If duel-service restarts between creating a match
+and returning the response, a subsequent retry with the same key is
+treated as new and creates a duplicate match. Acceptable at current scale
+(single instance, pre-launch); revisit with persistent storage (Redis/DB)
+before running multiple replicas or handling real traffic.
