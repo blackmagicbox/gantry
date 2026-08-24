@@ -2,9 +2,15 @@ package server
 
 import (
 	"context"
+	"sync"
 
 	duelv1 "github.com/blackmagicbox/gantry/gen/go/gantry/duel/v1"
 )
+
+type MatchesMap struct {
+	mu      sync.Mutex
+	matches map[string]string
+}
 
 type DuelServer struct {
 	duelv1.UnimplementedDuelServiceServer
