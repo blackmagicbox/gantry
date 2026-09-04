@@ -4,6 +4,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 
 	duelv1 "github.com/blackmagicbox/gantry/gen/go/gantry/duel/v1"
 	"github.com/blackmagicbox/gantry/services/duel-service/internal/container"
@@ -25,6 +27,15 @@ type DuelServer struct {
 // TODO: Implement logic later. It currently always returns a fixed,
 // non-unique match ID and does not record the match anywhere.
 func (ds *DuelServer) TriggerDuel(ctx context.Context, req *duelv1.TriggerDuelRequest) (*duelv1.TriggerDuelResponse, error) {
+	ikey := req.IdempotencyKey
+	if ikey == "" {
+		slog.Error("Missing idempotencyKey")
+		return nil, errors.New("idempotency_key is required")
+	}
 
-	return &duelv1.TriggerDuelResponse{MatchId: "fake_id-1234"}, nil
+	// Save the Idempotency key to the Container
+	// It should create an UUID key and associate to the idempotent key.
+	matchID := matches.Inc(ikey)
+
+	return &duelv1.TriggerDuelResponse{MatchId: matchID.String()}, nil
 }
