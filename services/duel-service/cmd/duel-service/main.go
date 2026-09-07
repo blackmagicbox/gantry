@@ -76,7 +76,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	duelv1.RegisterDuelServiceServer(grpcServer, &server.DuelServer{})
+	duelv1.RegisterDuelServiceServer(grpcServer, server.NewDuelServer())
 
 	go func() {
 		slog.Info("Starting the duel-service gRPC server", "port", port)

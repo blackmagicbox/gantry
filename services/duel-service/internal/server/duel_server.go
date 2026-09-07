@@ -13,13 +13,17 @@ import (
 
 // matches tracks idempotency keys already seen by TriggerDuel, guarding
 // against duplicate match creation on retried requests.
-var matches = container.NewContainer()
 
 // DuelServer implements the duelv1.DuelServiceServer gRPC interface.
 // It embeds UnimplementedDuelServiceServer so new RPCs added to the
 // proto in the future don't break the build until implemented here.
 type DuelServer struct {
 	duelv1.UnimplementedDuelServiceServer
+	matches *container.Container
+}
+
+func NewDuelServer() *DuelServer {
+	return &DuelServer{matches: container.NewContainer()}
 }
 
 // TriggerDuel handles a request to start a new duel.
@@ -35,7 +39,7 @@ func (ds *DuelServer) TriggerDuel(ctx context.Context, req *duelv1.TriggerDuelRe
 
 	// Save the Idempotency key to the Container
 	// It should create an UUID key and associate to the idempotent key.
-	matchID := matches.Inc(ikey)
+	matchID := ds.matches.Inc(ikey)
 
 	return &duelv1.TriggerDuelResponse{MatchId: matchID.String()}, nil
 }
