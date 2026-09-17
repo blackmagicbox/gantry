@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -19,13 +20,13 @@ func main() {
 		health_port = "8080"
 	}
 
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		slog.Error("PORT is not set")
-		os.Exit(1)
-	} else if port == "" {
-		port = "50051"
-	}
+	// port, ok := os.LookupEnv("PORT")
+	// if !ok {
+	// 	slog.Error("PORT is not set")
+	// 	os.Exit(1)
+	// } else if port == "" {
+	// 	port = "50051"
+	// }
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -33,7 +34,7 @@ func main() {
 	// Create a Handler (mux)
 	mux := http.NewServeMux()
 	// handle the '/healtz' endpoint on it
-	mux.HandleFunc("/healtz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Write([]byte("OK\n"))
 	})
@@ -51,6 +52,31 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
+	// Create a listener for the GRPC requests
+	// lis, err := net.Listen("tcp", port)
+	// if err != nil {
+	// 	slog.Error("It was not possible to initialize the service listener")
+	// 	os.Exit(1)
+	// }
 
+	// // Create a GRPC server
+	// grpcServer := grpc.NewServer()
+	// // Register the created server
+	// // Start a go routine to run the GRPC Server
+
+	<-ctx.Done()
+	slog.Info("Shutdown signal received")
+
+	// Create the shutdown context
+	shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// Shutdown the service
+	if err := httpServer.Shutdown(shutdownContext); err != nil {
+		slog.Error("Gracefull shutdown fail", "error", err)
+		os.Exit(1)
+	}
+	// Shutdown GRPC Server
+	// grpcServer.GracefulStop()
+	// inform.
+	slog.Info("Server stopped Gracefully")
 }

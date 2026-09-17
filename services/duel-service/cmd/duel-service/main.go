@@ -63,7 +63,7 @@ func main() {
 	go func() {
 		slog.Info("Starting duel-service", "health_port", health_port)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("Server failed to start", "error", err)
+			slog.Error("Failed to start duel-service", "error", err)
 			os.Exit(1)
 		}
 	}()
