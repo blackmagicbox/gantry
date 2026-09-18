@@ -9,6 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	duelv1 "github.com/blackmagicbox/gantry/gen/go/gantry/duel/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -20,13 +24,13 @@ func main() {
 		health_port = "8080"
 	}
 
-	// port, ok := os.LookupEnv("PORT")
-	// if !ok {
-	// 	slog.Error("PORT is not set")
-	// 	os.Exit(1)
-	// } else if port == "" {
-	// 	port = "50051"
-	// }
+	port, ok := os.LookupEnv("PORT")
+	if !ok {
+		slog.Error("PORT is not set")
+		os.Exit(1)
+	} else if port == "" {
+		port = "50051"
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -52,23 +56,19 @@ func main() {
 		}
 	}()
 
-	// Create a listener for the GRPC requests
-	// lis, err := net.Listen("tcp", port)
-	// if err != nil {
-	// 	slog.Error("It was not possible to initialize the service listener")
-	// 	os.Exit(1)
-	// }
-
-	// // Create a GRPC server
-	// grpcServer := grpc.NewServer()
-	// // Register the created server
-	// // Start a go routine to run the GRPC Server
+	// // Create a GRPC client
+	grpcClient, err := grpc.NewClient(port, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		slog.Error("Failed to create grpc client", "error", err)
+	}
+	conn := duelv1.NewDuelServiceClient(grpcClient)
 
 	<-ctx.Done()
 	slog.Info("Shutdown signal received")
 
 	// Create the shutdown context
 	shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	defer cancel()
 	// Shutdown the service
 	if err := httpServer.Shutdown(shutdownContext); err != nil {
