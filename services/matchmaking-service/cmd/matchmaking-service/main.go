@@ -9,10 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	duelv1 "github.com/blackmagicbox/gantry/gen/go/gantry/duel/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -55,28 +51,40 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	// Example of a call to Trigger Duel to test the connection with the server
+	// conn, err := grpc.NewClient(fmt.Sprintf("localhost:%s", port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// if err != nil {
+	// 	slog.Error("it was not possible to create grpc client", "error", err)
+	// 	os.Exit(1)
+	// }
+	// client := duelv1.NewDuelServiceClient(conn)
 
-	// // Create a GRPC client
-	grpcClient, err := grpc.NewClient(port, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		slog.Error("Failed to create grpc client", "error", err)
-	}
-	conn := duelv1.NewDuelServiceClient(grpcClient)
+	// // Temp Test calling Trigger Duel directly
+	// req := &duelv1.TriggerDuelRequest{
+	// 	IdempotencyKey: "test",
+	// 	Player_1Id:     "player-1",
+	// 	Player_2Id:     "player-2",
+	// }
+	// resp, err := client.TriggerDuel(ctx, req)
+	// if err != nil {
+	// 	slog.Error("Failed to trigger duel", "error", err)
+	// } else {
+	// 	slog.Info(
+	// 		"duel triggered successfully",
+	// 		"match_id", resp.MatchId,
+	// 	)
+	// }
 
 	<-ctx.Done()
 	slog.Info("Shutdown signal received")
 
-	// Create the shutdown context
-	shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	// Shutdown the service
-	if err := httpServer.Shutdown(shutdownContext); err != nil {
-		slog.Error("Gracefull shutdown fail", "error", err)
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		slog.Error("Graceful shutdown failed", "error", err)
 		os.Exit(1)
 	}
-	// Shutdown GRPC Server
-	// grpcServer.GracefulStop()
-	// inform.
-	slog.Info("Server stopped Gracefully")
+
+	slog.Info("Server stopped gracefully")
 }
