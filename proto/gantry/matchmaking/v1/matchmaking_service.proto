@@ -1,0 +1,31 @@
+syntax = "proto3";
+package gantry.matchmaking.v1;
+
+service MatchmakingService {
+   rpc JoinQueue(JoinQueueRequest) returns (JoinQueueResponse);
+   rpc GetQueueStatus(GetQueueStatusRequest) returns (GetQueueStatusResponse);
+}
+
+enum Status {
+    STATUS_UNSPECIFIED= 0;
+    STATUS_WAITING = 1;
+    STATUS_MATCHED = 2;
+    STATUS_EXPIRED= 3;
+}
+
+message JoinQueueResponse {
+    string ticket_id = 1;
+}
+
+message JoinQueueRequest {
+    string player_id = 1;
+}
+
+message GetQueueStatusRequest {
+    string ticket_id = 1;
+}
+
+message GetQueueStatusResponse {
+    Status status = 1;
+    string match_id=2;
+}
