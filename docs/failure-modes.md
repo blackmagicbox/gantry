@@ -8,6 +8,10 @@ TriggerDuel call (`matchmaking-service` -> `duel-service`): if it fails or times
 
 TriggerDuel retries: idempotency_key tracks a status (in-progress/success/failed) per attempt. A retry with the same key returns the same result if succeed instead of creating a new duel.
 
+## `matchmaking-service` - Deferred: Client Authentication 
+
+Client Identity: JoinQueue and GetQueueStatus are client-facing, so they must not trust self-reported player ID. Identity is meant to come from an auth token sent as gRPC metadata and validated by an interceptor before any handle runs. ; JoinQueueRequest is empty for that reason. Until auth-service can issue and validate tokens and the interceptor exists, these RPCs have no authentication and must not be exposed beyond local development. When implemented, a ticket must be bound to the player who created it, so that GetQueueStatus rejects a ticket_id that belongs to someone else.
+
 ## `duel-service`
 
 Duel timeout checkpoint: if a client doesn't respond within the grace
