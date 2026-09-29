@@ -4,11 +4,12 @@ package server
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	duelv1 "github.com/blackmagicbox/gantry/gen/go/gantry/duel/v1"
 	"github.com/blackmagicbox/gantry/services/duel-service/internal/container"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // matches tracks idempotency keys already seen by TriggerDuel, guarding
@@ -32,7 +33,7 @@ func (ds *DuelServer) TriggerDuel(ctx context.Context, req *duelv1.TriggerDuelRe
 	ikey := req.IdempotencyKey
 	if ikey == "" {
 		slog.Error("Missing idempotencyKey")
-		return nil, errors.New("idempotency_key is required")
+		return nil, status.Error(codes.InvalidArgument, "idempotency_key is required")
 	}
 
 	// Save the Idempotency key to the Container
