@@ -2,22 +2,28 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	matchmakingv1 "github.com/blackmagicbox/gantry/gen/go/gantry/matchmaking/v1"
+	"github.com/blackmagicbox/gantry/services/matchmaking-service/internal/server"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	health_port, ok := os.LookupEnv("HEALTH_PORT")
+	healthPort, ok := os.LookupEnv("HEALTH_PORT")
 	if !ok {
 		slog.Error("HEALTH_PORT is not set")
 		os.Exit(1)
-	} else if health_port == "" {
-		health_port = "8080"
+	} else if healthPort == "" {
+		healthPort = "8080"
 	}
 
 	port, ok := os.LookupEnv("PORT")
@@ -36,48 +42,44 @@ func main() {
 	// handle the '/healtz' endpoint on it
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
-		w.Write([]byte("OK\n"))
+		_, err := w.Write([]byte("OK\n"))
+		if err != nil {
+			slog.Error("Failed to write response", "error", err)
+			return
+		}
 	})
 	// Create a new server
 	httpServer := &http.Server{
-		Addr:    fmt.Sprintf(":%s", health_port),
+		Addr:    fmt.Sprintf(":%s", healthPort),
 		Handler: mux,
 	}
 	// Create a go routine to run the server
 	go func() {
-		slog.Info("Starting matchmaking-service", "port", health_port)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		slog.Info("Starting matchmaking-service", "port", healthPort)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("Failed to start matchmaking-service", "error", err)
 			os.Exit(1)
 		}
 	}()
-	// Example of a call to Trigger Duel to test the connection with the server
-	// conn, err := grpc.NewClient(fmt.Sprintf("localhost:%s", port), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	// if err != nil {
-	// 	slog.Error("it was not possible to create grpc client", "error", err)
-	// 	os.Exit(1)
-	// }
-	// client := duelv1.NewDuelServiceClient(conn)
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	if err != nil {
+		slog.Error("It was not possible to initialize the service listener", "error", err)
+		os.Exit(1)
+	}
 
-	// // Temp Test calling Trigger Duel directly
-	// req := &duelv1.TriggerDuelRequest{
-	// 	IdempotencyKey: "test",
-	// 	Player_1Id:     "player-1",
-	// 	Player_2Id:     "player-2",
-	// }
-	// resp, err := client.TriggerDuel(ctx, req)
-	// if err != nil {
-	// 	slog.Error("Failed to trigger duel", "error", err)
-	// } else {
-	// 	slog.Info(
-	// 		"duel triggered successfully",
-	// 		"match_id", resp.MatchId,
-	// 	)
-	// }
+	grpcServer := grpc.NewServer()
+	matchmakingv1.RegisterMatchmakingServiceServer(grpcServer, server.NewMatchmakingServer())
+
+	go func() {
+		slog.Info("Starting the matchmaking-service gRPC server", "port", port)
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("Failed to start matchmaking-service gRCP server", "error", err)
+			os.Exit(1)
+		}
+	}()
 
 	<-ctx.Done()
 	slog.Info("Shutdown signal received")
-
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

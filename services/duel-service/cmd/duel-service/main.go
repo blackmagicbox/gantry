@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -25,12 +26,12 @@ func main() {
 	// HEALTH_PORT/PORT are required so deployment manifests must set them
 	// explicitly; an empty value (as opposed to unset) falls back to a
 	// sane local default for development.
-	health_port, ok := os.LookupEnv("HEALTH_PORT")
+	healthPort, ok := os.LookupEnv("HEALTH_PORT")
 	if !ok {
 		slog.Error("HEALTH_PORT is not set.")
 		os.Exit(1)
-	} else if health_port == "" {
-		health_port = "8080"
+	} else if healthPort == "" {
+		healthPort = "8080"
 	}
 
 	port, ok := os.LookupEnv("PORT")
@@ -52,17 +53,21 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
-		w.Write([]byte("OK\n"))
+		_, err := w.Write([]byte("OK\n"))
+		if err != nil {
+			slog.Error("Failed to write response", "error", err)
+			return
+		}
 	})
 
 	httpServer := &http.Server{
-		Addr:    fmt.Sprintf(":%s", health_port),
+		Addr:    fmt.Sprintf(":%s", healthPort),
 		Handler: mux,
 	}
 
 	go func() {
-		slog.Info("Starting duel-service", "health_port", health_port)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		slog.Info("Starting duel-service", "health_port", healthPort)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("Failed to start duel-service", "error", err)
 			os.Exit(1)
 		}
