@@ -12,6 +12,7 @@ import (
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+)
 
 const (
 	// Verify that this generated code is sufficiently up-to-date.
