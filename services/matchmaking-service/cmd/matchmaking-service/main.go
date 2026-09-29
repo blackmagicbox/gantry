@@ -87,6 +87,6 @@ func main() {
 		slog.Error("Graceful shutdown failed", "error", err)
 		os.Exit(1)
 	}
-
+	grpcServer.GracefulStop()
 	slog.Info("Server stopped gracefully")
 }
