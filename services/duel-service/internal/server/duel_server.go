@@ -27,8 +27,6 @@ func NewDuelServer() *DuelServer {
 }
 
 // TriggerDuel handles a request to start a new duel.
-//
-// TODO: Implement logic later. It currently always returns a fixed,
 // non-unique match ID and does not record the match anywhere.
 func (ds *DuelServer) TriggerDuel(ctx context.Context, req *duelv1.TriggerDuelRequest) (*duelv1.TriggerDuelResponse, error) {
 	ikey := req.IdempotencyKey
