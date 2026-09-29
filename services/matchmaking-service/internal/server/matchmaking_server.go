@@ -18,6 +18,6 @@ func (ms *MatchmakingServer) JoinQueue(ctx context.Context, req *matchmakingv1.J
 	return &matchmakingv1.JoinQueueResponse{TicketId: "ticketId1"}, nil
 }
 
-func (ms *MatchmakingServer) GetQueueStatus(ctx context.Context, rea *matchmakingv1.GetQueueStatusRequest) (*matchmakingv1.GetQueueStatusResponse, error) {
-	return &matchmakingv1.GetQueueStatusResponse{Status: matchmakingv1.Status_STATUS_WAITING, MatchId: "matchId1"}, nil
+func (ms *MatchmakingServer) GetQueueStatus(ctx context.Context, req *matchmakingv1.GetQueueStatusRequest) (*matchmakingv1.GetQueueStatusResponse, error) {
+	return &matchmakingv1.GetQueueStatusResponse{Status: matchmakingv1.Status_STATUS_MATCHED, MatchId: "matchId1"}, nil
 }
