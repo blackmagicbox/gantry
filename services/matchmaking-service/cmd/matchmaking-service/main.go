@@ -13,6 +13,7 @@ import (
 	"time"
 
 	matchmakingv1 "github.com/blackmagicbox/gantry/gen/go/gantry/matchmaking/v1"
+	"github.com/blackmagicbox/gantry/services/matchmaking-service/internal/interceptors"
 	"github.com/blackmagicbox/gantry/services/matchmaking-service/internal/server"
 	"google.golang.org/grpc"
 )
@@ -67,7 +68,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptors.UnaryAuthenticationInterceptor))
 	matchmakingv1.RegisterMatchmakingServiceServer(grpcServer, server.NewMatchmakingServer())
 
 	go func() {
