@@ -74,7 +74,7 @@ func main() {
 	go func() {
 		slog.Info("Starting the matchmaking-service gRPC server", "port", port)
 		if err := grpcServer.Serve(lis); err != nil {
-			slog.Error("Failed to start matchmaking-service gRCP server", "error", err)
+			slog.Error("Failed to start matchmaking-service gRPC server", "error", err)
 			os.Exit(1)
 		}
 	}()

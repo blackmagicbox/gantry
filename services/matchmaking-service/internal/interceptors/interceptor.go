@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"time"
-	
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -58,6 +58,10 @@ func getAuthenticationToken(ctx context.Context) (string, error) {
 	if len(attr) == 0 {
 		slog.Error("Player ID is missing", "error", "Player ID is mandatory")
 		return "", errors.New("player ID is mandatory")
+	} else if attr[0] == "" {
+		slog.Error("Player ID is empty", "error", "Player ID is mandatory")
+		return "", errors.New("player ID is mandatory")
+
 	}
 
 	return attr[0], nil
