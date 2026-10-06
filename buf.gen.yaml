@@ -8,12 +8,26 @@ managed:
       - file_option: go_package_prefix
         value: github.com/blackmagicbox/gantry/gen/go
 
+# Plugins are invoked through `go run` with pinned versions rather than named
+# as bare binaries. Two reasons:
+#
+#  1. Nothing has to be installed or added to PATH. A bare `local:
+#     protoc-gen-go` is resolved from PATH, which on Windows means
+#     %USERPROFILE%\go\bin must be on PATH or buf fails with a confusing
+#     missing-plugin error. This form needs only the Go toolchain.
+#  2. The versions are pinned here, so every machine and CI generate
+#     byte-identical output instead of whatever each developer installed.
+#
+# protoc-gen-go is kept in lockstep with google.golang.org/protobuf in go.mod.
+# protoc-gen-go-grpc is a separate module with its own version line.
+# When bumping either, also bump the matching requirement in go.mod.
+
 plugins:
-    - local: protoc-gen-go
+    - local: ["go", "run", "google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12"]
       out: gen/go
       opt:
           - paths=source_relative
-    - local: protoc-gen-go-grpc
+    - local: ["go", "run", "google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.0"]
       out: gen/go
       opt:
           - paths=source_relative
