@@ -13,6 +13,15 @@ concurrency:
 permissions:
   contents: read
 
+# actions/setup-go pins GOTOOLCHAIN=local, which forbids Go from fetching a
+# newer toolchain. Some pinned tools need one: buf v1.73.0 requires Go >= 1.26.7
+# while go.mod declares 1.26.4, so `go run` fails outright under `local`.
+# `auto` is also the default on a developer machine, so CI behaves the same way
+# the three development machines do. Downloaded toolchains are checksum
+# verified, so this stays reproducible.
+env:
+  GOTOOLCHAIN: auto
+
 jobs:
   # Linux is the source of truth, because that is what GKE runs. Windows is in
   # the matrix so that anything which only works on Linux is caught here rather

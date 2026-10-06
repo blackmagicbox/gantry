@@ -132,3 +132,15 @@ Two consequences worth knowing:
 
 CI invokes Task via `go run` at the version pinned in `Taskfile.yml`, so CI and
 all three machines run identical tooling.
+
+### A note on Go toolchain versions
+
+`go.mod` declares `go 1.26.4`, but some pinned tools need a newer Go than that
+(buf v1.73.0 requires 1.26.7). Go handles this by fetching the toolchain it
+needs, which is the default behaviour (`GOTOOLCHAIN=auto`) and needs no setup
+on any of the three machines.
+
+CI has to set `GOTOOLCHAIN: auto` explicitly, because `actions/setup-go` pins it
+to `local` — which forbids the fetch and makes `go run` fail with
+`requires go >= …`. If you ever see that error locally, check you have not set
+`GOTOOLCHAIN=local` in your shell.
