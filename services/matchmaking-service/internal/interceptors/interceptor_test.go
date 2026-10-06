@@ -31,6 +31,7 @@ func TestUnaryAuthenticationInterceptor(t *testing.T) {
 		t.Error("Expected handler to be called")
 	}
 }
+
 func TestUnaryAuthenticationInterceptorWithNoTokenSent(t *testing.T) {
 	handlerCalled := false
 	mockHandler := func(ctx context.Context, req any) (any, error) {

@@ -1,0 +1,176 @@
+# Task runner — https://taskfile.dev
+#
+# One command surface for all three development machines (Arch, Fedora,
+# Windows). Install Task itself with:
+#   Arch     pacman -S go-task      (binary is `go-task`)
+#   Fedora   dnf install go-task
+#   Windows  winget install Task.Task
+#
+# Everything else is pinned below and fetched on demand by `go run`, so no
+# other tool needs installing by hand and every machine runs identical
+# versions. Commands avoid Unix-only binaries so they work in PowerShell.
+
+version: '3'
+
+vars:
+  # Single source of truth for tool versions. Bump here, everywhere follows.
+  # The protoc plugin versions live in buf.gen.yaml, because buf invokes those
+  # itself — bump them there.
+  GOLANGCI_VERSION: v2.14.0
+  GOLANGCI: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.GOLANGCI_VERSION}}
+  BUF_VERSION: v1.73.0
+  BUF: go run github.com/bufbuild/buf/cmd/buf@{{.BUF_VERSION}}
+  KO_VERSION: v0.19.1
+  KO: go run github.com/google/ko@{{.KO_VERSION}}
+
+  # ko needs explicit main packages; it does not expand `./...`. Add new
+  # services here.
+  SERVICE_PKGS: >-
+    ./services/auth-service/cmd/auth-service
+    ./services/duel-service/cmd/duel-service
+    ./services/leaderboard-service/cmd/leaderboard-service
+    ./services/matchmaking-service/cmd/matchmaking-service
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  tidy:
+    desc: Add missing and remove unused module requirements
+    cmds:
+      - go mod tidy
+
+  fmt:
+    desc: Format all Go code (gofumpt, via golangci-lint)
+    cmds:
+      - '{{.GOLANGCI}} fmt'
+
+  fmt:check:
+    desc: Fail if any Go code is not formatted (does not rewrite files)
+    cmds:
+      - '{{.GOLANGCI}} fmt --diff'
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - '{{.GOLANGCI}} run'
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  test:race:
+    desc: Run all tests under the race detector (needs a C toolchain on Windows)
+    cmds:
+      - go test -race ./...
+
+  test:cover:
+    desc: Run tests and report total coverage
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out
+
+  build:
+    desc: Build every service into ./bin
+    cmds:
+      # The trailing slash makes Go name each binary after its package and add
+      # .exe on Windows, so this one line is correct on all three machines.
+      - go build -o bin/ ./...
+
+  run:
+    desc: 'Run one service, e.g. task run -- duel-service'
+    cmds:
+      - go run ./services/{{.CLI_ARGS}}/cmd/{{.CLI_ARGS}}
+
+  clean:
+    desc: Remove build output
+    cmds:
+      - cmd: rm -rf bin coverage.out images.tar
+        platforms: [linux, darwin]
+      - cmd: powershell -NoProfile -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue bin, coverage.out, images.tar"
+        platforms: [windows]
+
+  # ---------------------------------------------------------------------------
+  # Protobuf / codegen
+  # ---------------------------------------------------------------------------
+
+  gen:
+    desc: Regenerate Go code from proto/ into gen/
+    cmds:
+      - '{{.BUF}} generate'
+
+  gen:lint:
+    desc: Lint the .proto definitions
+    cmds:
+      - '{{.BUF}} lint'
+
+  gen:breaking:
+    desc: Check proto changes for backwards incompatibility against origin/main
+    cmds:
+      - '{{.BUF}} breaking --against ".git#branch=origin/main"'
+
+  gen:check:
+    desc: Fail if gen/ is out of date with proto/ (used by CI)
+    cmds:
+      - task: gen
+      # --intent-to-add registers newly generated files so `git diff` sees
+      # them. Without it a brand new .proto that was never generated would
+      # produce only untracked files, which `git diff` ignores.
+      - git add --intent-to-add gen/
+      - git diff --exit-code -- gen/
+
+  # ---------------------------------------------------------------------------
+  # Container images (no Docker daemon required)
+  # ---------------------------------------------------------------------------
+
+  image:
+    desc: Build and push service images (requires KO_DOCKER_REPO)
+    cmds:
+      - '{{.KO}} build --base-import-paths {{.SERVICE_PKGS}}'
+
+  image:tar:
+    desc: Build all service images into images.tar locally, without a registry
+    env:
+      # --push=false means this is never contacted; ko just requires the
+      # variable to be set, and `ko.local` would force a Docker daemon load.
+      KO_DOCKER_REPO: example.invalid/gantry
+    cmds:
+      - '{{.KO}} build --push=false --tarball=images.tar --base-import-paths {{.SERVICE_PKGS}}'
+
+  # ---------------------------------------------------------------------------
+  # Aggregates
+  # ---------------------------------------------------------------------------
+
+  doctor:
+    desc: Print toolchain versions, to check a machine is set up correctly
+    cmds:
+      - go version
+      - go env GOVERSION GOPATH
+      - git --version
+      - task --version
+      # Also warms the module cache for buf, so the first real `task gen` is
+      # not a surprise.
+      - '{{.BUF}} --version'
+
+  ci:
+    desc: Everything CI enforces for Go code — run this before pushing
+    cmds:
+      - task: fmt:check
+      - task: vet
+      - task: lint
+      - task: test
+
+  ci:proto:
+    desc: Everything CI enforces for protobuf
+    cmds:
+      - task: gen:lint
+      - task: gen:check
