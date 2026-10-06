@@ -35,6 +35,12 @@ go.sum          text eol=lf linguist-generated=true
 *.golden        text eol=lf
 vendor/**       linguist-vendored=true
 
+# Protobuf definitions and the Go output buf generates from them.
+*.proto         text eol=lf
+# Collapse generated code in GitHub diffs and keep it out of the repo's
+# language statistics. buf regenerates gen/; nobody edits it by hand.
+gen/**          linguist-generated=true
+
 # ---------------------------------------------------------------------------
 # Gradle / Kotlin Multiplatform
 # ---------------------------------------------------------------------------
