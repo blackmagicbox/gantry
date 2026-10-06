@@ -1,0 +1,102 @@
+# Keep every working tree byte-identical across Linux, macOS and Windows.
+#
+# These attributes override each machine's core.autocrlf setting, so no
+# per-machine git config is needed: clone and go.
+
+# Default for anything Git detects as text: LF in the repo AND in the
+# working tree, on every OS. Go, Gradle, Kotlin and every modern editor
+# handle LF on Windows without complaint.
+*               text=auto eol=lf
+
+# ---------------------------------------------------------------------------
+# Exceptions: files that genuinely need CRLF
+# ---------------------------------------------------------------------------
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.ps1           text eol=crlf
+
+# ---------------------------------------------------------------------------
+# Files that must stay LF even when an exception above might tempt you
+# ---------------------------------------------------------------------------
+# A wrapper script with CRLF fails to execute on Linux with a confusing
+# "bad interpreter" error. gradlew.bat is covered by *.bat above.
+*.sh            text eol=lf
+gradlew         text eol=lf
+*.pem           text eol=lf
+Dockerfile      text eol=lf
+*.Dockerfile    text eol=lf
+
+# ---------------------------------------------------------------------------
+# Go
+# ---------------------------------------------------------------------------
+*.go            text eol=lf diff=golang
+go.mod          text eol=lf
+go.sum          text eol=lf linguist-generated=true
+*.golden        text eol=lf
+vendor/**       linguist-vendored=true
+
+# ---------------------------------------------------------------------------
+# Gradle / Kotlin Multiplatform
+# ---------------------------------------------------------------------------
+gradle/wrapper/gradle-wrapper.jar   binary linguist-generated=true
+gradle/libs.versions.toml           text eol=lf
+
+# ---------------------------------------------------------------------------
+# Binary: never normalize, never diff as text
+# ---------------------------------------------------------------------------
+# Images
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.bmp  binary
+*.tga  binary
+*.psd  binary
+
+# Vector / design (SVG is text, but diffs are noise)
+*.svg  text eol=lf -diff
+
+# Fonts
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+
+# Audio
+*.wav  binary
+*.ogg  binary
+*.mp3  binary
+*.flac binary
+
+# 3D / DCC assets
+*.fbx  binary
+*.obj  binary
+*.ma   binary
+*.mb   binary
+*.blend binary
+*.gltf binary
+*.glb  binary
+
+# Archives and build artifacts
+*.zip  binary
+*.gz   binary
+*.tgz  binary
+*.bz2  binary
+*.xz   binary
+*.7z   binary
+*.jar  binary
+*.war  binary
+*.aar  binary
+*.apk  binary
+*.aab  binary
+*.so   binary
+*.dll  binary
+*.dylib binary
+*.exe  binary
+*.keystore binary
+*.jks  binary
+
+# Documents
+*.pdf  binary

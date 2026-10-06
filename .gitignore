@@ -8,6 +8,11 @@
 *.so
 *.dylib
 
+# Android ships native libraries as .so; un-ignore them so the rule above
+# cannot silently drop a packaged library.
+!**/src/main/jniLibs/**/*.so
+!**/src/*/jniLibs/**/*.so
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -24,9 +29,63 @@ profile.cov
 go.work
 go.work.sum
 
+# Compiled service binaries
+/bin/
+/dist/
+
+# Task (taskfile.dev) checksum cache
+.task/
+
 # env file
 .env
+.env.*
+!.env.example
 
+# ---------------------------------------------------------------------------
+# Gradle / Kotlin Multiplatform / Android
+# ---------------------------------------------------------------------------
+.gradle/
+build/
+captures/
+.kotlin/
+.cxx/
+*.hprof
+
+# Machine-local: holds this machine's Android SDK path. Committing it is the
+# classic reason a project stops building when you switch computers.
+local.properties
+
+# Kotlin/Native downloads its toolchain here
+.konan/
+
+# ---------------------------------------------------------------------------
 # Editor/IDE
-.idea/
-.vscode/
+# ---------------------------------------------------------------------------
+*.iml
+# Note the trailing /* rather than /: Git cannot re-include a file whose parent
+# DIRECTORY is excluded, so excluding the contents is what makes the negations
+# below work at all.
+.idea/*
+# Keep the parts that are genuinely shared, so formatting and run
+# configurations follow the project instead of the machine.
+!.idea/codeStyles/
+!.idea/runConfigurations/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.fleet/
+*.swp
+*.swo
+
+# ---------------------------------------------------------------------------
+# OS cruft
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
