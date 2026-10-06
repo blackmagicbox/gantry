@@ -13,14 +13,16 @@ concurrency:
 permissions:
   contents: read
 
-# actions/setup-go pins GOTOOLCHAIN=local, which forbids Go from fetching a
-# newer toolchain. Some pinned tools need one: buf v1.73.0 requires Go >= 1.26.7
-# while go.mod declares 1.26.4, so `go run` fails outright under `local`.
-# `auto` is also the default on a developer machine, so CI behaves the same way
-# the three development machines do. Downloaded toolchains are checksum
-# verified, so this stays reproducible.
-env:
-  GOTOOLCHAIN: auto
+# Note on GOTOOLCHAIN below:
+#
+# Some pinned tools need a newer Go than go.mod declares — buf v1.73.0 requires
+# >= 1.26.7 against a `go 1.26.4` directive — so `go run` must be allowed to
+# fetch a toolchain. That is the default on a developer machine
+# (GOTOOLCHAIN=auto), but actions/setup-go exports GOTOOLCHAIN=local through
+# $GITHUB_ENV, which overrides workflow-level and job-level `env:`. Only a
+# step-level `env:` takes precedence over it, so it is set on each step that
+# runs Go rather than once at the top. Fetched toolchains are checksum
+# verified, so builds stay reproducible.
 
 jobs:
   # Linux is the source of truth, because that is what GKE runs. Windows is in
@@ -45,6 +47,8 @@ jobs:
       # rather than installed by a third-party action, so CI and the three
       # development machines all run the same version.
       - name: task ci
+        env:
+          GOTOOLCHAIN: auto
         run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 ci
 
   # The race detector needs a C toolchain, which is not a given on Windows, so
@@ -58,7 +62,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 test:race
+      - name: task test:race
+        env:
+          GOTOOLCHAIN: auto
+        run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 test:race
 
   proto:
     name: protobuf
@@ -75,13 +82,24 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      # Diagnostic: makes the effective toolchain visible in the log, so a
+      # future "requires go >= x" failure is one glance to diagnose.
+      - name: show toolchain
+        env:
+          GOTOOLCHAIN: auto
+        run: go env GOTOOLCHAIN GOVERSION
+
       # Lints proto/ and fails if gen/ does not match what buf produces from
       # it, so generated code can never drift from its definitions.
       - name: task ci:proto
+        env:
+          GOTOOLCHAIN: auto
         run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 ci:proto
 
       - name: breaking change check
         if: github.event_name == 'pull_request'
+        env:
+          GOTOOLCHAIN: auto
         run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 gen:breaking
 
   # Proves images still build without a Docker daemon. Nothing is pushed: that
@@ -95,4 +113,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 image:tar
+      - name: task image:tar
+        env:
+          GOTOOLCHAIN: auto
+        run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 image:tar
