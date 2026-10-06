@@ -1,0 +1,17 @@
+# ko configuration — https://ko.build
+#
+# ko builds container images for Go services without a Docker daemon: it
+# cross-compiles with the Go toolchain and assembles the OCI layers itself.
+# That is what makes image building work natively on Windows, where every
+# container runtime would otherwise need a Linux VM behind it.
+#
+# Build images with `task image` (requires KO_DOCKER_REPO to be set).
+
+# Distroless static: no shell, no package manager, ~2MB, and `nonroot` runs as
+# uid 65532 so the container does not need a securityContext to drop root.
+# Suitable for pure-Go services with CGO disabled, which all of ours are.
+defaultBaseImage: gcr.io/distroless/static:nonroot
+
+# GKE Autopilot node pools are amd64 unless Arm nodes are requested explicitly.
+defaultPlatforms:
+  - linux/amd64

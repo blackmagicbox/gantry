@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Linux is the source of truth, because that is what GKE runs. Windows is in
+  # the matrix so that anything which only works on Linux is caught here rather
+  # than when someone switches machines.
+  go:
+    name: go (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Task is invoked through `go run` at the version pinned in Taskfile.yml
+      # rather than installed by a third-party action, so CI and the three
+      # development machines all run the same version.
+      - name: task ci
+        run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 ci
+
+  # The race detector needs a C toolchain, which is not a given on Windows, so
+  # it runs on Linux only. Same reason test:race is separate from test.
+  race:
+    name: race detector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 test:race
+
+  proto:
+    name: protobuf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # buf breaking compares against origin/main, which needs real history
+          # rather than the default single-commit shallow clone.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Lints proto/ and fails if gen/ does not match what buf produces from
+      # it, so generated code can never drift from its definitions.
+      - name: task ci:proto
+        run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 ci:proto
+
+      - name: breaking change check
+        if: github.event_name == 'pull_request'
+        run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 gen:breaking
+
+  # Proves images still build without a Docker daemon. Nothing is pushed: that
+  # needs credentials, and belongs in a deploy workflow rather than CI.
+  image:
+    name: image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go run github.com/go-task/task/v3/cmd/task@v3.54.0 image:tar

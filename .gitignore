@@ -33,6 +33,9 @@ go.work.sum
 /bin/
 /dist/
 
+# Container image tarball from `task image:tar`
+/images.tar
+
 # Task (taskfile.dev) checksum cache
 .task/
 
