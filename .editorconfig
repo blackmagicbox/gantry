@@ -1,0 +1,43 @@
+# Shared editor settings so Android Studio on Windows, and whatever you use on
+# Arch and Fedora, all format code the same way. Respected natively by
+# IntelliJ/Android Studio, VS Code (with the EditorConfig extension), Zed,
+# Helix, Neovim (with a plugin) and GoLand.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# gofmt is authoritative for Go: tabs, width 4 for display purposes only.
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 120
+
+[*.java]
+indent_size = 4
+
+[*.{yml,yaml,json,toml,tf,tfvars}]
+indent_size = 2
+
+[*.{sh,bash}]
+indent_size = 2
+
+# Windows scripts keep CRLF, matching .gitattributes.
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+# Trailing whitespace is significant in Markdown (two spaces = line break).
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{proto,sql}]
+indent_size = 2
