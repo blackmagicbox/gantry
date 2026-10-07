@@ -21,12 +21,12 @@ git add --renormalize .
 
 ## Everyday commands
 
-| Command | What it does |
-|---|---|
-| `go build ./...` | Compile every package |
-| `go test ./...` | Run all tests |
-| `go vet ./...` | Report suspicious code |
-| `go mod tidy` | Add missing and remove unused dependencies |
+| Command                               | What it does                                                                                       |
+|---------------------------------------|----------------------------------------------------------------------------------------------------|
+| `go build ./...`                      | Compile every package                                                                              |
+| `go test ./...`                       | Run all tests                                                                                      |
+| `go vet ./...`                        | Report suspicious code                                                                             |
+| `go mod tidy`                         | Add missing and remove unused dependencies                                                         |
 | `go run ./services/<name>/cmd/<name>` | Run one service, e.g. `duel-service`, `matchmaking-service`, `leaderboard-service`, `auth-service` |
 
 ## Regenerating protobuf code
