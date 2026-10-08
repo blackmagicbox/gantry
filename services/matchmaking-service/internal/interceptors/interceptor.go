@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type PlayerID struct{}
+
 func UnaryAuthenticationInterceptor(
 	ctx context.Context,
 	req any,
@@ -31,6 +33,7 @@ func UnaryAuthenticationInterceptor(
 	// Log the incoming request.
 	slog.Info("Received unary RPC request", "token", token, "info", info.FullMethod)
 	// Call the Actual handler
+	ctx = context.WithValue(ctx, PlayerID{}, token)
 	resp, err := handler(ctx, req)
 
 	// Calculate the Duration
@@ -65,4 +68,9 @@ func getAuthenticationToken(ctx context.Context) (string, error) {
 	}
 
 	return attr[0], nil
+}
+
+func GetPlayerIDFromContext(ctx context.Context) (string, bool) {
+	id, ok := ctx.Value(PlayerID{}).(string)
+	return id, ok
 }
