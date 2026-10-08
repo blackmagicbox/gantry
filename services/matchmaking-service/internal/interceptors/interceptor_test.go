@@ -65,3 +65,23 @@ func TestUnaryAuthenticationInterceptorWithBankTokenSent(t *testing.T) {
 		t.Errorf("Expected error if token is blank, but got %v", err)
 	}
 }
+
+func TestInterceptorPassesPlayerIDToHandler(t *testing.T) {
+	ctx := newFromContext(metadata.Pairs("x-player-id", "player-1"))
+
+	var gotID string
+	var gotOK bool
+
+	handler := func(ctx context.Context, req any) (any, error) {
+		gotID, gotOK = GetPlayerIDFromContext(ctx)
+		return nil, nil
+	}
+	info := &grpc.UnaryServerInfo{FullMethod: "/fake/Method"}
+
+	if _, err := UnaryAuthenticationInterceptor(ctx, nil, info, handler); err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+	if !gotOK || gotID != "player-1" {
+		t.Errorf("Got(%q, %v), want (%q, true)", gotID, gotOK, "player-1")
+	}
+}
