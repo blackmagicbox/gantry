@@ -70,7 +70,7 @@ func playerIDFromMetadata(ctx context.Context) (string, error) {
 	return attr[0], nil
 }
 
-func GetPlayerIDFromContext(ctx context.Context) (string, bool) {
+func PlayerIDFromContext(ctx context.Context) (string, bool) {
 	id, ok := ctx.Value(playerIDKey{}).(string)
 	if !ok {
 		return "", false

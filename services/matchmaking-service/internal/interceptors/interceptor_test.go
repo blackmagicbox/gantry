@@ -73,7 +73,7 @@ func TestInterceptorPassesPlayerIDToHandler(t *testing.T) {
 	var gotOK bool
 
 	handler := func(ctx context.Context, req any) (any, error) {
-		gotID, gotOK = GetPlayerIDFromContext(ctx)
+		gotID, gotOK = PlayerIDFromContext(ctx)
 		return nil, nil
 	}
 	info := &grpc.UnaryServerInfo{FullMethod: "/fake/Method"}
