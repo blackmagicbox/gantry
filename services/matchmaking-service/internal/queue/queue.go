@@ -9,14 +9,20 @@ import (
 )
 
 type Queue struct {
-	mu    sync.Mutex
-	queue map[string]Ticket
+	mu         sync.Mutex
+	queue      map[string]Ticket
+	byPlayerID map[string]Ticket
 }
 
 func New() *Queue {
 	return &Queue{
-		queue: make(map[string]Ticket),
+		queue:      make(map[string]Ticket),
+		byPlayerID: make(map[string]Ticket),
 	}
+}
+
+func (q *Queue) CheckByPlayer(ticketID string) bool {
+	return false
 }
 
 func (q *Queue) Enqueue(playerID string) Ticket {

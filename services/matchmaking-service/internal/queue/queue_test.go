@@ -73,3 +73,33 @@ func TestQueueConcurrentAccess(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestEnqueueSamePlayerReturnsSameTicket(t *testing.T) {
+	q := New()
+	first := q.Enqueue("player1")
+	second := q.Enqueue("player1")
+
+	if first.TicketID != second.TicketID {
+		t.Errorf("Want same %s for player1, got %s", first.TicketID, second.TicketID)
+	}
+}
+
+func TestEnqueueSamePlayerReturnsSameTicketConcurrent(t *testing.T) {
+	q := New()
+	const n = 100
+	ids := make([]string, n)
+	var wg sync.WaitGroup
+	for i := range ids {
+		wg.Go(func() {
+			ticket := q.Enqueue("player1")
+			ids[i] = ticket.TicketID
+		})
+	}
+	wg.Wait()
+	for i := range ids {
+		if ids[0] != ids[i] {
+			t.Errorf("Want %s, got %s", ids[0], ids[i])
+			break
+		}
+	}
+}
