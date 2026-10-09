@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type PlayerID struct{}
+type playerIDKey struct{}
 
 func UnaryAuthenticationInterceptor(
 	ctx context.Context,
@@ -23,17 +23,17 @@ func UnaryAuthenticationInterceptor(
 	// Record the start time
 	start := time.Now()
 
-	// Extract the Authentication Token
-	token, err := getAuthenticationToken(ctx)
+	// Extract the Authentication player_id
+	playerID, err := playerIDFromMetadata(ctx)
 	if err != nil {
-		slog.Error("Failed to get Authentication token", "error", err)
+		slog.Error("Failed to get Authentication player_id", "error", err)
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	// Log the incoming request.
-	slog.Info("Received unary RPC request", "token", token, "info", info.FullMethod)
+	slog.Info("Received unary RPC request", "player_id", playerID, "info", info.FullMethod)
 	// Call the Actual handler
-	ctx = context.WithValue(ctx, PlayerID{}, token)
+	ctx = context.WithValue(ctx, playerIDKey{}, playerID)
 	resp, err := handler(ctx, req)
 
 	// Calculate the Duration
@@ -43,13 +43,13 @@ func UnaryAuthenticationInterceptor(
 	statusCode := status.Code(err)
 
 	// Log the completion
-	slog.Info("Unary RPC request completed", "token", token, "duration", duration, "status", statusCode)
+	slog.Info("Unary RPC request completed", "player_id", playerID, "duration", duration, "status", statusCode)
 
 	// Return response or error
 	return resp, err
 }
 
-func getAuthenticationToken(ctx context.Context) (string, error) {
+func playerIDFromMetadata(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		slog.Error("It was not possible to get metadata from context", "error", "Metadata is mandatory")
@@ -71,6 +71,9 @@ func getAuthenticationToken(ctx context.Context) (string, error) {
 }
 
 func GetPlayerIDFromContext(ctx context.Context) (string, bool) {
-	id, ok := ctx.Value(PlayerID{}).(string)
+	id, ok := ctx.Value(playerIDKey{}).(string)
+	if !ok {
+		return "", false
+	}
 	return id, ok
 }

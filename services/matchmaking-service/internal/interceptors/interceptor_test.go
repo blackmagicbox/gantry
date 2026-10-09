@@ -31,7 +31,7 @@ func TestUnaryAuthenticationInterceptor(t *testing.T) {
 		t.Error("Expected handler to be called")
 	}
 }
-func TestUnaryAuthenticationInterceptorWithNoTokenSent(t *testing.T) {
+func TestUnaryAuthenticationInterceptorWithNoPlayerIDSent(t *testing.T) {
 	handlerCalled := false
 	mockHandler := func(ctx context.Context, req any) (any, error) {
 		handlerCalled = true
@@ -44,11 +44,11 @@ func TestUnaryAuthenticationInterceptorWithNoTokenSent(t *testing.T) {
 	}
 
 	if err == nil {
-		t.Errorf("Expected error if token not sent, but got %v", err)
+		t.Errorf("Expected error if player_id not sent, but got %v", err)
 	}
 }
 
-func TestUnaryAuthenticationInterceptorWithBankTokenSent(t *testing.T) {
+func TestUnaryAuthenticationInterceptorWithBlankPlayerIDSent(t *testing.T) {
 	md := metadata.Pairs("x-player-id", "")
 	handlerCalled := false
 	mockHandler := func(ctx context.Context, req any) (any, error) {
@@ -62,7 +62,7 @@ func TestUnaryAuthenticationInterceptorWithBankTokenSent(t *testing.T) {
 	}
 
 	if err == nil {
-		t.Errorf("Expected error if token is blank, but got %v", err)
+		t.Errorf("Expected error if player_id is blank, but got %v", err)
 	}
 }
 
