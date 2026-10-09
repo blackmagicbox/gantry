@@ -8,9 +8,27 @@ TriggerDuel call (`matchmaking-service` -> `duel-service`): if it fails or times
 
 TriggerDuel retries: idempotency_key tracks a status (in-progress/success/failed) per attempt. A retry with the same key returns the same result if succeed instead of creating a new duel.
 
-## `matchmaking-service` - Deferred: Client Authentication 
+## `matchmaking-service` - Known Limitations
 
-Client Identity: JoinQueue and GetQueueStatus are client-facing, so they must not trust self-reported player ID. Identity is meant to come from an auth token sent as gRPC metadata and validated by an interceptor before any handle runs. ; JoinQueueRequest is empty for that reason. Until auth-service can issue and validate tokens and the interceptor exists, these RPCs have no authentication and must not be exposed beyond local development. When implemented, a ticket must be bound to the player who created it, so that GetQueueStatus rejects a ticket_id that belongs to someone else.
+Client authentication: the authentication interceptor requires an `x-player-id`
+gRPC metadata header, rejects missing or empty values with `Unauthenticated`,
+and exposes the value to handlers through `PlayerIDFromContext`. The header
+is client-supplied and not verified, so any client can impersonate any
+player. This is acceptable for local development only; the service must not
+be exposed beyond it. Once auth-service can issue tokens, the interceptor
+will validate a token and derive the player ID from it. Handlers will not
+change. A ticket must then be bound to the player who created it, so that
+GetQueueStatus rejects a ticket_id that belongs to someone else.
+JoinQueueRequest is empty for that reason: identity never comes from the
+request body.
+
+Queue persistence: tickets live in an in-memory map only. If
+matchmaking-service restarts, all waiting tickets are lost and players must
+rejoin. Tickets are also never removed, so the map grows without bound;
+expiry (STATUS_EXPIRED) is planned but not implemented. Acceptable at
+current scale (single instance, pre-launch); revisit with expiry and
+persistent storage (Redis/DB) before running multiple replicas or handling
+real traffic.
 
 ## `duel-service`
 
