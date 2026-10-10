@@ -11,17 +11,21 @@ import (
 type Queue struct {
 	mu         sync.Mutex
 	queue      map[string]Ticket
-	byPlayerID map[string]Ticket
+	byPlayerID map[string]string
 }
 
 func New() *Queue {
 	return &Queue{
-		queue:      make(map[string]Ticket),
-		byPlayerID: make(map[string]Ticket),
+		sync.Mutex{},
+		make(map[string]Ticket),
+		make(map[string]string),
 	}
 }
 
-func (q *Queue) CheckByPlayer(ticketID string) bool {
+func (q *Queue) CheckByPlayer(playerID string) bool {
+	if _, ok := q.byPlayerID[playerID]; ok {
+		return true
+	}
 	return false
 }
 
@@ -29,6 +33,10 @@ func (q *Queue) Enqueue(playerID string) Ticket {
 	ticketID := uuid.New()
 	q.mu.Lock()
 	defer q.mu.Unlock()
+
+	if exists := q.CheckByPlayer(playerID); exists {
+		return q.queue[q.byPlayerID[playerID]]
+	}
 
 	ticket := Ticket{
 		TicketID:  ticketID.String(),
@@ -39,6 +47,7 @@ func (q *Queue) Enqueue(playerID string) Ticket {
 	}
 
 	q.queue[ticketID.String()] = ticket
+	q.byPlayerID[playerID] = ticket.TicketID
 	return ticket
 }
 
