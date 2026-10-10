@@ -100,7 +100,7 @@ func main() {
 	defer cancel()
 
 	if err := httpServer.Shutdown(shutDownContext); err != nil {
-		slog.Error("Gracefull shutdown failed", "error", err)
+		slog.Error("Graceful shutdown failed", "error", err)
 		os.Exit(1)
 	}
 
