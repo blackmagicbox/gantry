@@ -33,7 +33,7 @@ func UnaryAuthenticationInterceptor(
 	// Log the incoming request.
 	slog.Info("Received unary RPC request", "player_id", playerID, "info", info.FullMethod)
 	// Call the Actual handler
-	ctx = context.WithValue(ctx, playerIDKey{}, playerID)
+	ctx = WithPLayerID(ctx, playerID)
 	resp, err := handler(ctx, req)
 
 	// Calculate the Duration
@@ -47,6 +47,11 @@ func UnaryAuthenticationInterceptor(
 
 	// Return response or error
 	return resp, err
+}
+
+func WithPLayerID(ctx context.Context, playerID string) context.Context {
+	ctx = context.WithValue(ctx, playerIDKey{}, playerID)
+	return ctx
 }
 
 func playerIDFromMetadata(ctx context.Context) (string, error) {
