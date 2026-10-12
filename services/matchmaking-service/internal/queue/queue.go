@@ -22,19 +22,12 @@ func New() *Queue {
 	}
 }
 
-func (q *Queue) CheckByPlayer(playerID string) bool {
-	if _, ok := q.byPlayerID[playerID]; ok {
-		return true
-	}
-	return false
-}
-
 func (q *Queue) Enqueue(playerID string) Ticket {
 	ticketID := uuid.New()
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	if exists := q.CheckByPlayer(playerID); exists {
+	if _, ok := q.byPlayerID[playerID]; ok {
 		return q.queue[q.byPlayerID[playerID]]
 	}
 
