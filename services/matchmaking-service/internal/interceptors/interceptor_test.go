@@ -85,3 +85,13 @@ func TestInterceptorPassesPlayerIDToHandler(t *testing.T) {
 		t.Errorf("Got(%q, %v), want (%q, true)", gotID, gotOK, "player-1")
 	}
 }
+func TestPlayerIDRoundTripsThroughContext(t *testing.T) {
+	ctx := WithPlayerID(context.Background(), "player-1")
+	gotID, gotOK := PlayerIDFromContext(ctx)
+	if !gotOK {
+		t.Error("Expected to find player-1")
+	}
+	if gotID != "player-1" {
+		t.Errorf("Got(%q, %v), want (\"player-1\")", gotID, gotOK)
+	}
+}
