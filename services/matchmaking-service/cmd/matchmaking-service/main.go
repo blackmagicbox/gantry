@@ -14,6 +14,7 @@ import (
 
 	matchmakingv1 "github.com/blackmagicbox/gantry/gen/go/gantry/matchmaking/v1"
 	"github.com/blackmagicbox/gantry/services/matchmaking-service/internal/interceptors"
+	"github.com/blackmagicbox/gantry/services/matchmaking-service/internal/queue"
 	"github.com/blackmagicbox/gantry/services/matchmaking-service/internal/server"
 	"google.golang.org/grpc"
 )
@@ -67,9 +68,9 @@ func main() {
 		slog.Error("It was not possible to initialize the service listener", "error", err)
 		os.Exit(1)
 	}
-
+	q := queue.New()
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptors.UnaryAuthenticationInterceptor))
-	matchmakingv1.RegisterMatchmakingServiceServer(grpcServer, server.NewMatchmakingServer())
+	matchmakingv1.RegisterMatchmakingServiceServer(grpcServer, server.NewMatchmakingServer(q))
 
 	go func() {
 		slog.Info("Starting the matchmaking-service gRPC server", "port", port)
