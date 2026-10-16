@@ -30,6 +30,18 @@ current scale (single instance, pre-launch); revisit with expiry and
 persistent storage (Redis/DB) before running multiple replicas or handling
 real traffic.
 
+One active ticket per player: Queue.Enqueue keeps a secondary index
+(player ID -> ticket ID) and, under the same lock as the insert, returns the
+player's existing ticket instead of creating a new one. JoinQueue is therefore
+idempotent: a client retry or double click gets the same ticket_id back, and a
+player can never hold two places in the queue. Today the rule applies to every
+ticket, because nothing leaves the queue yet; once pairing exists, only
+WAITING tickets will block a rejoin. Because the player ID is unverified (see
+Client authentication), anyone can still flood the queue with tickets by
+sending random x-player-id values, and tickets are never removed (see Queue
+persistence). Mitigations, in order: real token authentication, rate limiting
+per client, a maximum queue size, and ticket expiry. None are implemented yet.
+
 ## `duel-service`
 
 Duel timeout checkpoint: if a client doesn't respond within the grace
