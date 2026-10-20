@@ -103,3 +103,39 @@ func TestEnqueueSamePlayerReturnsSameTicketConcurrent(t *testing.T) {
 		}
 	}
 }
+
+func TestTryMatch(t *testing.T) {
+	q := New()
+	ticket1 := q.Enqueue("player1")
+	ticket2 := q.Enqueue("player2")
+
+	matchID, err := q.TryMatch()
+	if err != nil {
+		t.Fatalf("Want nil, got \"%v\"", err)
+	}
+	if matchID == "" {
+		t.Fatalf("Want non-empty matchID, got empty")
+	}
+	updated1, ok := q.Get(ticket1.TicketID)
+	if !ok {
+		t.Fatalf("Want true, got false for ticket: %s", ticket1.TicketID)
+	}
+	updated2, ok := q.Get(ticket2.TicketID)
+	if !ok {
+		t.Fatalf("Want true, got false for ticket: %s", ticket2.TicketID)
+	}
+	if updated1.MatchID != matchID {
+		t.Errorf("Want %s, got %s", matchID, updated1.MatchID)
+	}
+	if updated2.MatchID != matchID {
+		t.Errorf("Want %s, got %s", matchID, updated2.MatchID)
+	}
+
+	if updated1.Status != matchmakingv1.Status_STATUS_MATCHED {
+		t.Errorf("Want status MATCHED, got %s", updated1.Status)
+	}
+	if updated2.Status != matchmakingv1.Status_STATUS_MATCHED {
+		t.Errorf("Want status MATCHED, got %s", updated2.Status)
+	}
+
+}
