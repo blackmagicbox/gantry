@@ -1,5 +1,6 @@
 package queue
 
 type Match struct {
-	MatchId string
+	ID      string
+	Tickets [2]Ticket
 }
