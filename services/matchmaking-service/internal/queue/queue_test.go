@@ -109,10 +109,11 @@ func TestTryMatch(t *testing.T) {
 	ticket1 := q.Enqueue("player1")
 	ticket2 := q.Enqueue("player2")
 
-	matchID, err := q.TryMatch()
-	if err != nil {
-		t.Fatalf("Want nil, got \"%v\"", err)
+	match, ok := q.TryMatch()
+	if !ok {
+		t.Fatalf("Want true, got false for TryMatch with 2 waiting players")
 	}
+	matchID := match.MatchId
 	if matchID == "" {
 		t.Fatalf("Want non-empty matchID, got empty")
 	}
