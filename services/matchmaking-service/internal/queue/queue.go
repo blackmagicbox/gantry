@@ -54,9 +54,10 @@ func (q *Queue) Get(ticketID string) (Ticket, bool) {
 	return ticket, ok
 }
 
-// This method will be called by a loop until there are more then 1 player waiting in the list
+// TryMatch This method will be called by a loop until there are more then 1 player waiting in the list
 func (q *Queue) TryMatch() (Match, bool) {
 	// Get the two oldest players in `waiting`
+
 	// find the ticketIDs for each byPlayerID
 	// Generate a MatchID
 	// Get the Tickets, change the status
