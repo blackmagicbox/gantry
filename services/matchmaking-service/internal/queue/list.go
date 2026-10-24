@@ -29,8 +29,20 @@ func NewList() *List {
 func (l *List) Dequeue() (*Item, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.len == 0 {
+		return nil, false
+	}
+	// The oldest item lives at the tail
+	item := l.tail
+	l.tail = item.prev
+	if l.tail == nil {
+		l.head = nil
+	} else {
+		l.tail.next = nil
+	}
+	item.prev = nil
 	l.len--
-	return nil, false
+	return item, true
 }
 
 // Enqueue add items to the List
@@ -46,6 +58,7 @@ func (l *List) Enqueue(val string) {
 		l.head = item
 		l.tail = item
 	} else {
+		item.next = l.head
 		l.head.prev = item
 		l.head = item
 	}
@@ -54,6 +67,9 @@ func (l *List) Enqueue(val string) {
 func (l *List) Peek() string {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.head == nil {
+		return ""
+	}
 	if l.len == 0 {
 		return ""
 	}
