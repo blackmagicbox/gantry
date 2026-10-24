@@ -113,7 +113,7 @@ func TestTryMatch(t *testing.T) {
 	if !ok {
 		t.Fatalf("Want true, got false for TryMatch with 2 waiting players")
 	}
-	matchID := match.MatchId
+	matchID := match.ID
 	if matchID == "" {
 		t.Fatalf("Want non-empty matchID, got empty")
 	}

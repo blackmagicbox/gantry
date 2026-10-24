@@ -12,7 +12,7 @@ type Queue struct {
 	mu         sync.Mutex
 	queue      map[string]Ticket
 	byPlayerID map[string]string
-	waiting    []string
+	waiting    *List
 }
 
 func New() *Queue {
@@ -20,7 +20,7 @@ func New() *Queue {
 		sync.Mutex{},
 		make(map[string]Ticket),
 		make(map[string]string),
-		[]string{},
+		NewList(),
 	}
 }
 
@@ -43,7 +43,7 @@ func (q *Queue) Enqueue(playerID string) Ticket {
 
 	q.queue[ticketID.String()] = ticket
 	q.byPlayerID[playerID] = ticket.TicketID
-	q.waiting = append(q.waiting, playerID)
+	q.waiting.Enqueue(playerID)
 	return ticket
 }
 
