@@ -2,6 +2,7 @@ package queue
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 	"testing"
 
@@ -101,6 +102,59 @@ func TestEnqueueSamePlayerReturnsSameTicketConcurrent(t *testing.T) {
 			t.Errorf("Want %s, got %s", ids[0], ids[i])
 			break
 		}
+	}
+	if len(q.waiting) != 1 {
+		t.Errorf("Want 1 waiting player, got %d", len(q.waiting))
+	}
+}
+
+func TestEnqueueAddsToWaitingInFIFOOrder(t *testing.T) {
+	q := New()
+	want := []string{"player1", "player2", "player3"}
+	for _, p := range want {
+		q.Enqueue(p)
+	}
+
+	if !slices.Equal(q.waiting, want) {
+		t.Errorf("Want waiting %v, got %v", want, q.waiting)
+	}
+}
+
+func TestEnqueueSamePlayerNotAddedToWaitingTwice(t *testing.T) {
+	q := New()
+	q.Enqueue("player1")
+	q.Enqueue("player1")
+
+	if len(q.waiting) != 1 {
+		t.Errorf("Want 1 waiting player, got %d: %v", len(q.waiting), q.waiting)
+	}
+}
+
+func TestEnqueueConcurrentWaitingCount(t *testing.T) {
+	q := New()
+	const n = 1000
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Go(func() {
+			q.Enqueue(fmt.Sprintf("player%d", i))
+		})
+	}
+	wg.Wait()
+
+	if len(q.waiting) != n {
+		t.Errorf("Want %d waiting players, got %d", n, len(q.waiting))
+	}
+}
+
+func TestTryMatchWithFewerThanTwoPlayers(t *testing.T) {
+	q := New()
+	if _, ok := q.TryMatch(); ok {
+		t.Errorf("Want false for TryMatch on empty queue, got true")
+	}
+
+	q.Enqueue("player1")
+	if _, ok := q.TryMatch(); ok {
+		t.Errorf("Want false for TryMatch with 1 waiting player, got true")
 	}
 }
 
