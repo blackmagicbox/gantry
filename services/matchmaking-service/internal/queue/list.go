@@ -67,10 +67,8 @@ func (l *List) Enqueue(val string) {
 func (l *List) Peek() string {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.head == nil {
-		return ""
-	}
-	if l.len == 0 {
+
+	if l.len == 0 && l.head == nil {
 		return ""
 	}
 
