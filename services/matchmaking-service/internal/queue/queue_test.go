@@ -159,6 +159,7 @@ func TestTryMatchWithFewerThanTwoPlayers(t *testing.T) {
 }
 
 func TestTryMatch(t *testing.T) {
+
 	q := New()
 	ticket1 := q.Enqueue("player1")
 	ticket2 := q.Enqueue("player2")
@@ -192,5 +193,85 @@ func TestTryMatch(t *testing.T) {
 	if updated2.Status != matchmakingv1.Status_STATUS_MATCHED {
 		t.Errorf("Want status MATCHED, got %s", updated2.Status)
 	}
+}
 
+func TestTryMatchWithOnePlayer(t *testing.T) {
+	q := New()
+	ticket := q.Enqueue("player1")
+
+	if _, ok := q.TryMatch(); ok {
+		t.Fatalf("Want false for TryMatch with 1 waiting player, got true")
+	}
+
+	// The lone player must be left untouched, still waiting for an opponent
+	if !slices.Equal(q.waiting, []string{"player1"}) {
+		t.Errorf("Want waiting [player1], got %v", q.waiting)
+	}
+	updated, ok := q.Get(ticket.TicketID)
+	if !ok {
+		t.Fatalf("Want true, got false for ticket: %s", ticket.TicketID)
+	}
+	if updated.Status != matchmakingv1.Status_STATUS_WAITING {
+		t.Errorf("Want status WAITING, got %s", updated.Status)
+	}
+	if updated.MatchID != "" {
+		t.Errorf("Want empty MatchID, got %s", updated.MatchID)
+	}
+}
+
+func TestTryMatchWithThreePlayers(t *testing.T) {
+	q := New()
+	ticket1 := q.Enqueue("player1")
+	ticket2 := q.Enqueue("player2")
+	ticket3 := q.Enqueue("player3")
+
+	match, ok := q.TryMatch()
+	if !ok {
+		t.Fatalf("Want true, got false for TryMatch with 3 waiting players")
+	}
+
+	// The two oldest players are matched, in FIFO order
+	if len(match.Tickets) != 2 {
+		t.Fatalf("Want 2 tickets in match, got %d", len(match.Tickets))
+	}
+	if match.Tickets[0].TicketID != ticket1.TicketID || match.Tickets[1].TicketID != ticket2.TicketID {
+		t.Errorf("Want tickets [%s %s], got [%s %s]",
+			ticket1.TicketID, ticket2.TicketID, match.Tickets[0].TicketID, match.Tickets[1].TicketID)
+	}
+
+	// The third player stays in the queue, still waiting
+	if !slices.Equal(q.waiting, []string{"player3"}) {
+		t.Errorf("Want waiting [player3], got %v", q.waiting)
+	}
+	updated3, ok := q.Get(ticket3.TicketID)
+	if !ok {
+		t.Fatalf("Want true, got false for ticket: %s", ticket3.TicketID)
+	}
+	if updated3.Status != matchmakingv1.Status_STATUS_WAITING {
+		t.Errorf("Want status WAITING, got %s", updated3.Status)
+	}
+	if updated3.MatchID != "" {
+		t.Errorf("Want empty MatchID, got %s", updated3.MatchID)
+	}
+
+	// A second attempt has only one player left, so no match
+	if _, ok := q.TryMatch(); ok {
+		t.Errorf("Want false for second TryMatch with 1 waiting player, got true")
+	}
+
+	// Once a fourth player joins, player3 gets matched with them
+	q.Enqueue("player4")
+	match2, ok := q.TryMatch()
+	if !ok {
+		t.Fatalf("Want true, got false for TryMatch after player4 joined")
+	}
+	if match2.ID == match.ID {
+		t.Errorf("Want distinct match IDs, got %s twice", match.ID)
+	}
+	if match2.Tickets[0].TicketID != ticket3.TicketID {
+		t.Errorf("Want player3's ticket %s first, got %s", ticket3.TicketID, match2.Tickets[0].TicketID)
+	}
+	if len(q.waiting) != 0 {
+		t.Errorf("Want empty waiting, got %v", q.waiting)
+	}
 }

@@ -56,11 +56,11 @@ func (q *Queue) Get(ticketID string) (Ticket, bool) {
 }
 
 // TryMatch This method will be called by a loop until there are more then 1 player waiting in the list
-func (q *Queue) TryMatch() (*Match, bool) {
+func (q *Queue) TryMatch() (Match, bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if len(q.waiting) < 2 {
-		return &Match{}, false
+		return Match{}, false
 	}
 	// Get the two oldest players in `waiting`
 	player1 := q.waiting[0]
@@ -84,7 +84,7 @@ func (q *Queue) TryMatch() (*Match, bool) {
 	q.queue[ticket2.TicketID] = ticket2
 
 	// Return the MatchID
-	return &Match{
+	return Match{
 		ID:      matchID,
 		Tickets: []Ticket{ticket, ticket2}}, true
 }
