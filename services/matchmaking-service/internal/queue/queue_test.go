@@ -275,3 +275,53 @@ func TestTryMatchWithThreePlayers(t *testing.T) {
 		t.Errorf("Want empty waiting, got %v", q.waiting)
 	}
 }
+
+func TestTryMatchConcurrent(t *testing.T) {
+	q := New()
+	const n = 200 // even, so everyone can be paired
+	for i := range n {
+		q.Enqueue(fmt.Sprintf("player%d", i))
+	}
+
+	var (
+		mu      sync.Mutex
+		matched = map[string]int{} // playerID -> times matched
+		start   = make(chan struct{})
+		wg      sync.WaitGroup
+	)
+	for range n {
+		wg.Go(func() {
+			<-start // release all goroutines at once to maximize overlap
+			m, ok := q.TryMatch()
+			if !ok {
+				return
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			for _, tk := range m.Tickets {
+				matched[tk.PlayerID]++
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+
+	// Every player is matched exactly once
+	if len(matched) != n {
+		t.Errorf("Want %d matched players, got %d", n, len(matched))
+	}
+	for p, c := range matched {
+		if c != 1 {
+			t.Errorf("Want player %s matched once, got %d", p, c)
+		}
+	}
+	// Nobody is left waiting, and every stored ticket is MATCHED
+	if len(q.waiting) != 0 {
+		t.Errorf("Want empty waiting, got %v", q.waiting)
+	}
+	for _, tk := range q.queue {
+		if tk.Status != matchmakingv1.Status_STATUS_MATCHED || tk.MatchID == "" {
+			t.Errorf("Want ticket %s MATCHED with a MatchID, got %s / %q", tk.TicketID, tk.Status, tk.MatchID)
+		}
+	}
+}
