@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -56,5 +57,34 @@ func (q *Queue) Get(ticketID string) (Ticket, bool) {
 
 // TryMatch This method will be called by a loop until there are more then 1 player waiting in the list
 func (q *Queue) TryMatch() (*Match, bool) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if len(q.waiting) < 2 {
+		return &Match{}, false
+	}
+	// Get the two oldest players in `waiting`
+	player1 := q.waiting[0]
+	player2 := q.waiting[1]
+	q.waiting = q.waiting[2:]
+	// find the ticketIDs for each byPlayerID
+	ticketIDPlayer1 := q.byPlayerID[player1]
+	ticketIDPlayer2 := q.byPlayerID[player2]
+	// Generate a MatchID
+	// TODO: Generate a proper ID
+	matchID := fmt.Sprintf("match%s%s", player1, player2)
+	ticket := q.queue[ticketIDPlayer1]
+	ticket2 := q.queue[ticketIDPlayer2]
+	// Get the Tickets, change the status
+	ticket.Status = matchmakingv1.Status_STATUS_MATCHED
+	ticket2.Status = matchmakingv1.Status_STATUS_MATCHED
+	// Update the MatchID in both Tickets
+	ticket.MatchID = matchID
+	ticket2.MatchID = matchID
+	q.queue[ticket.TicketID] = ticket
+	q.queue[ticket2.TicketID] = ticket2
 
+	// Return the MatchID
+	return &Match{
+		ID:      matchID,
+		Tickets: []Ticket{ticket, ticket2}}, true
 }
