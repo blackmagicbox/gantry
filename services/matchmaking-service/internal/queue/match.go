@@ -1,6 +1,8 @@
 package queue
 
+import "github.com/google/uuid"
+
 type Match struct {
-	ID      string
+	ID      uuid.UUID
 	Tickets []Ticket
 }

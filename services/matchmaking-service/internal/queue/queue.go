@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -70,16 +69,15 @@ func (q *Queue) TryMatch() (Match, bool) {
 	ticketIDPlayer1 := q.byPlayerID[player1]
 	ticketIDPlayer2 := q.byPlayerID[player2]
 	// Generate a MatchID
-	// TODO: Generate a proper ID
-	matchID := fmt.Sprintf("match%s%s", player1, player2)
+	matchID := uuid.New()
 	ticket := q.queue[ticketIDPlayer1]
 	ticket2 := q.queue[ticketIDPlayer2]
 	// Get the Tickets, change the status
 	ticket.Status = matchmakingv1.Status_STATUS_MATCHED
 	ticket2.Status = matchmakingv1.Status_STATUS_MATCHED
 	// Update the MatchID in both Tickets
-	ticket.MatchID = matchID
-	ticket2.MatchID = matchID
+	ticket.MatchID = matchID.String()
+	ticket2.MatchID = matchID.String()
 	q.queue[ticket.TicketID] = ticket
 	q.queue[ticket2.TicketID] = ticket2
 
