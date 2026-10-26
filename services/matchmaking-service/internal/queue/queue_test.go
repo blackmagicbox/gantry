@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	matchmakingv1 "github.com/blackmagicbox/gantry/gen/go/gantry/matchmaking/v1"
+	"github.com/google/uuid"
 )
 
 func TestEnqueue(t *testing.T) {
@@ -168,7 +169,7 @@ func TestTryMatch(t *testing.T) {
 	if !ok {
 		t.Fatalf("Want true, got false for TryMatch with 2 waiting players")
 	}
-	matchID := match.ID
+	matchID := match.ID.String()
 	if matchID == "" {
 		t.Fatalf("Want non-empty matchID, got empty")
 	}
@@ -323,5 +324,19 @@ func TestTryMatchConcurrent(t *testing.T) {
 		if tk.Status != matchmakingv1.Status_STATUS_MATCHED || tk.MatchID == "" {
 			t.Errorf("Want ticket %s MATCHED with a MatchID, got %s / %q", tk.TicketID, tk.Status, tk.MatchID)
 		}
+	}
+}
+
+func TestTryMatchGenerateUUIDMatchID(t *testing.T) {
+	q := New()
+	q.Enqueue("Player1")
+	q.Enqueue("Player2")
+
+	match, ok := q.TryMatch()
+	if !ok {
+		t.Fatalf("Want true, got false for TryMatch with TwoWaiting Players")
+	}
+	if _, err := uuid.Parse(match.ID.String()); err != nil {
+		t.Errorf("Want a valid UUID as MatchID but, got %q (%v) instead", match.ID, err)
 	}
 }
