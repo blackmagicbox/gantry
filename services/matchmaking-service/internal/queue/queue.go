@@ -12,27 +12,30 @@ type Queue struct {
 	mu         sync.Mutex
 	queue      map[string]Ticket
 	byPlayerID map[string]string
-	waiting    []string // playerIDs in FIFO order, oldest first
+	waiting    []string // ticketIDs in FIFO order, oldest first
 }
 
 func New() *Queue {
 	return &Queue{
-		sync.Mutex{},
-		make(map[string]Ticket),
-		make(map[string]string),
-		[]string{},
+		mu:         sync.Mutex{},
+		queue:      make(map[string]Ticket),
+		byPlayerID: make(map[string]string),
+		waiting:    []string{},
 	}
 }
 
 func (q *Queue) Enqueue(playerID string) Ticket {
-	ticketID := uuid.New()
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
 	if _, ok := q.byPlayerID[playerID]; ok {
-		return q.queue[q.byPlayerID[playerID]]
+		ticket := q.queue[q.byPlayerID[playerID]]
+		if ticket.Status == matchmakingv1.Status_STATUS_WAITING {
+			return ticket
+		}
 	}
 
+	ticketID := uuid.New()
 	ticket := Ticket{
 		TicketID:  ticketID.String(),
 		PlayerID:  playerID,
@@ -43,10 +46,11 @@ func (q *Queue) Enqueue(playerID string) Ticket {
 
 	q.queue[ticketID.String()] = ticket
 	q.byPlayerID[playerID] = ticket.TicketID
-	q.waiting = append(q.waiting, playerID)
+	q.waiting = append(q.waiting, ticket.TicketID)
 	return ticket
 }
 
+// Get This method returns the Ticket for a given ticketID
 func (q *Queue) Get(ticketID string) (Ticket, bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -54,35 +58,48 @@ func (q *Queue) Get(ticketID string) (Ticket, bool) {
 	return ticket, ok
 }
 
-// TryMatch This method will be called by a loop until there are more then 1 player waiting in the list
+// TryMatch This method will be called by a loop until there are more than 1 player waiting in the list
 func (q *Queue) TryMatch() (Match, bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if len(q.waiting) < 2 {
 		return Match{}, false
 	}
-	// Get the two oldest players in `waiting`
-	player1 := q.waiting[0]
-	player2 := q.waiting[1]
+
+	// Get the two oldest tickets in `waiting`
+	ticketID1 := q.waiting[0]
+	ticketID2 := q.waiting[1]
 	q.waiting = q.waiting[2:]
-	// find the ticketIDs for each byPlayerID
-	ticketIDPlayer1 := q.byPlayerID[player1]
-	ticketIDPlayer2 := q.byPlayerID[player2]
+
 	// Generate a MatchID
 	matchID := uuid.New()
-	ticket := q.queue[ticketIDPlayer1]
-	ticket2 := q.queue[ticketIDPlayer2]
+	ticket := q.queue[ticketID1]
+	ticket2 := q.queue[ticketID2]
+
 	// Get the Tickets, change the status
 	ticket.Status = matchmakingv1.Status_STATUS_MATCHED
 	ticket2.Status = matchmakingv1.Status_STATUS_MATCHED
+
 	// Update the MatchID in both Tickets
+	// We won't remove the tickets from the queue because the match hasn't started yet,
+	// and we need to be able to query the status of the ticket.
 	ticket.MatchID = matchID.String()
 	ticket2.MatchID = matchID.String()
+
+	// Update the queue with the tickets
 	q.queue[ticket.TicketID] = ticket
 	q.queue[ticket2.TicketID] = ticket2
 
+	// Remove the tickets from byPlayerID
+	delete(q.byPlayerID, ticket.PlayerID)
+	delete(q.byPlayerID, ticket2.PlayerID)
+
 	// Return the MatchID
 	return Match{
-		ID:      matchID,
-		Tickets: []Ticket{ticket, ticket2}}, true
+		ID: matchID,
+		Tickets: []Ticket{
+			ticket,
+			ticket2,
+		},
+	}, true
 }
