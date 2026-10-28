@@ -12,7 +12,7 @@ type Queue struct {
 	mu         sync.Mutex
 	queue      map[string]Ticket
 	byPlayerID map[string]string
-	waiting    []string // playerIDs in FIFO order, oldest first
+	waiting    []string // ticketIDs in FIFO order, oldest first
 }
 
 func New() *Queue {
@@ -43,7 +43,7 @@ func (q *Queue) Enqueue(playerID string) Ticket {
 
 	q.queue[ticketID.String()] = ticket
 	q.byPlayerID[playerID] = ticket.TicketID
-	q.waiting = append(q.waiting, playerID)
+	q.waiting = append(q.waiting, ticket.TicketID)
 	return ticket
 }
 
@@ -61,17 +61,14 @@ func (q *Queue) TryMatch() (Match, bool) {
 	if len(q.waiting) < 2 {
 		return Match{}, false
 	}
-	// Get the two oldest players in `waiting`
-	player1 := q.waiting[0]
-	player2 := q.waiting[1]
+	// Get the two oldest tickets in `waiting`
+	ticketID1 := q.waiting[0]
+	ticketID2 := q.waiting[1]
 	q.waiting = q.waiting[2:]
-	// find the ticketIDs for each byPlayerID
-	ticketIDPlayer1 := q.byPlayerID[player1]
-	ticketIDPlayer2 := q.byPlayerID[player2]
 	// Generate a MatchID
 	matchID := uuid.New()
-	ticket := q.queue[ticketIDPlayer1]
-	ticket2 := q.queue[ticketIDPlayer2]
+	ticket := q.queue[ticketID1]
+	ticket2 := q.queue[ticketID2]
 	// Get the Tickets, change the status
 	ticket.Status = matchmakingv1.Status_STATUS_MATCHED
 	ticket2.Status = matchmakingv1.Status_STATUS_MATCHED

@@ -111,9 +111,9 @@ func TestEnqueueSamePlayerReturnsSameTicketConcurrent(t *testing.T) {
 
 func TestEnqueueAddsToWaitingInFIFOOrder(t *testing.T) {
 	q := New()
-	want := []string{"player1", "player2", "player3"}
-	for _, p := range want {
-		q.Enqueue(p)
+	var want []string
+	for _, p := range []string{"player1", "player2", "player3"} {
+		want = append(want, q.Enqueue(p).TicketID)
 	}
 
 	if !slices.Equal(q.waiting, want) {
@@ -169,10 +169,10 @@ func TestTryMatch(t *testing.T) {
 	if !ok {
 		t.Fatalf("Want true, got false for TryMatch with 2 waiting players")
 	}
-	matchID := match.ID.String()
-	if matchID == "" {
-		t.Fatalf("Want non-empty matchID, got empty")
+	if match.ID == uuid.Nil {
+		t.Fatalf("Want non-zero matchID, got the zero UUID")
 	}
+	matchID := match.ID.String()
 	updated1, ok := q.Get(ticket1.TicketID)
 	if !ok {
 		t.Fatalf("Want true, got false for ticket: %s", ticket1.TicketID)
@@ -205,8 +205,8 @@ func TestTryMatchWithOnePlayer(t *testing.T) {
 	}
 
 	// The lone player must be left untouched, still waiting for an opponent
-	if !slices.Equal(q.waiting, []string{"player1"}) {
-		t.Errorf("Want waiting [player1], got %v", q.waiting)
+	if !slices.Equal(q.waiting, []string{ticket.TicketID}) {
+		t.Errorf("Want waiting [%s], got %v", ticket.TicketID, q.waiting)
 	}
 	updated, ok := q.Get(ticket.TicketID)
 	if !ok {
@@ -241,8 +241,8 @@ func TestTryMatchWithThreePlayers(t *testing.T) {
 	}
 
 	// The third player stays in the queue, still waiting
-	if !slices.Equal(q.waiting, []string{"player3"}) {
-		t.Errorf("Want waiting [player3], got %v", q.waiting)
+	if !slices.Equal(q.waiting, []string{ticket3.TicketID}) {
+		t.Errorf("Want waiting [%s], got %v", ticket3.TicketID, q.waiting)
 	}
 	updated3, ok := q.Get(ticket3.TicketID)
 	if !ok {
@@ -285,10 +285,11 @@ func TestTryMatchConcurrent(t *testing.T) {
 	}
 
 	var (
-		mu      sync.Mutex
-		matched = map[string]int{} // playerID -> times matched
-		start   = make(chan struct{})
-		wg      sync.WaitGroup
+		mu       sync.Mutex
+		matched  = map[string]int{}    // playerID -> times matched
+		matchIDs = map[uuid.UUID]int{} // matchID -> times generated
+		start    = make(chan struct{})
+		wg       sync.WaitGroup
 	)
 	for range n {
 		wg.Go(func() {
@@ -299,6 +300,7 @@ func TestTryMatchConcurrent(t *testing.T) {
 			}
 			mu.Lock()
 			defer mu.Unlock()
+			matchIDs[m.ID]++
 			for _, tk := range m.Tickets {
 				matched[tk.PlayerID]++
 			}
@@ -316,13 +318,24 @@ func TestTryMatchConcurrent(t *testing.T) {
 			t.Errorf("Want player %s matched once, got %d", p, c)
 		}
 	}
-	// Nobody is left waiting, and every stored ticket is MATCHED
+	// Every match gets its own non-zero ID
+	if len(matchIDs) != n/2 {
+		t.Errorf("Want %d distinct match IDs, got %d", n/2, len(matchIDs))
+	}
+	if _, ok := matchIDs[uuid.Nil]; ok {
+		t.Errorf("Want no zero UUID among match IDs, got one")
+	}
+	// Nobody is left waiting, and every stored ticket is MATCHED to one of the generated matches
 	if len(q.waiting) != 0 {
 		t.Errorf("Want empty waiting, got %v", q.waiting)
 	}
 	for _, tk := range q.queue {
-		if tk.Status != matchmakingv1.Status_STATUS_MATCHED || tk.MatchID == "" {
-			t.Errorf("Want ticket %s MATCHED with a MatchID, got %s / %q", tk.TicketID, tk.Status, tk.MatchID)
+		if tk.Status != matchmakingv1.Status_STATUS_MATCHED {
+			t.Errorf("Want ticket %s MATCHED, got %s", tk.TicketID, tk.Status)
+		}
+		id, err := uuid.Parse(tk.MatchID)
+		if err != nil || matchIDs[id] != 1 {
+			t.Errorf("Want ticket %s MatchID to be one of the generated match IDs, got %q", tk.TicketID, tk.MatchID)
 		}
 	}
 }
@@ -336,7 +349,43 @@ func TestTryMatchGenerateUUIDMatchID(t *testing.T) {
 	if !ok {
 		t.Fatalf("Want true, got false for TryMatch with TwoWaiting Players")
 	}
-	if _, err := uuid.Parse(match.ID.String()); err != nil {
-		t.Errorf("Want a valid UUID as MatchID but, got %q (%v) instead", match.ID, err)
+	if match.ID == uuid.Nil {
+		t.Errorf("Want non-empty matchID, got the zero UUID")
 	}
+	if match.ID.Version() != 4 || match.ID.Variant() != uuid.RFC4122 {
+		t.Errorf("Want a random (v4, RFC4122) UUID as MatchID, got %s (version %d, variant %s)",
+			match.ID, match.ID.Version(), match.ID.Variant())
+	}
+	// Ticket.MatchID is a string, so it must round-trip to the same UUID as the Match
+	for _, tk := range match.Tickets {
+		id, err := uuid.Parse(tk.MatchID)
+		if err != nil {
+			t.Errorf("Want ticket %s MatchID to be a valid UUID, got %q (%v)", tk.TicketID, tk.MatchID, err)
+		} else if id != match.ID {
+			t.Errorf("Want ticket %s MatchID %s, got %s", tk.TicketID, match.ID, id)
+		}
+	}
+}
+
+func TestTryMatchMatchesAPlayerThenThePlayerGetsEnqueuedAgain(t *testing.T) {
+	q := New()
+	firstTicket := q.Enqueue("Player1")
+	q.Enqueue("Player2")
+	match, ok := q.TryMatch()
+	if !ok {
+		t.Fatalf("Want true, got false for TryMatch with TwoWaiting Players")
+	}
+
+	if match.ID == uuid.Nil {
+		t.Errorf("Want non-empty matchID, got the zero UUID")
+	}
+
+	secondTicket := q.Enqueue("Player1")
+	if firstTicket.TicketID == secondTicket.TicketID {
+		t.Errorf("Want new second ticketID to be different, got first ticketID %s equals to second ticketID %s", firstTicket.TicketID, secondTicket.TicketID)
+	}
+	if secondTicket.Status != matchmakingv1.Status_STATUS_WAITING {
+		t.Errorf("Want ticket %s WAITING, got %s", secondTicket.TicketID, secondTicket.Status)
+	}
+
 }
