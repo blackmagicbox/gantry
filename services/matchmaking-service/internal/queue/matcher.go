@@ -14,9 +14,12 @@ func (q *Queue) RunMatcher(ctx context.Context, interval time.Duration, onMatch 
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			Match, ok := q.TryMatch()
-			if ok {
-				onMatch(Match)
+			for ctx.Err() == nil {
+				match, ok := q.TryMatch()
+				if !ok {
+					break
+				}
+				onMatch(match)
 			}
 		}
 	}
