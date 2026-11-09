@@ -9,6 +9,12 @@
 *.dylib
 /bin/
 
+# Service binaries left behind by `go build` without `-o`.
+# Build into /bin/ instead, see docs/development.md.
+/*-service
+/services/*/*-service
+/services/*/cmd/*/*-service
+
 # Test binary, built with `go test -c`
 *.test
 debug.test*
