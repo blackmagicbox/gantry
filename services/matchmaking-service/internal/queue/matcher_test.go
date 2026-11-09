@@ -41,3 +41,26 @@ func TestMatcher(t *testing.T) {
 		t.Error("no match received within 2 seconds")
 	}
 }
+
+func TestMatcherWithCanceledContext(t *testing.T) {
+	q := New()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+
+	go func() {
+		q.RunMatcher(ctx, 1000*time.Millisecond, func(m Match) {
+		})
+		close(done)
+	}()
+	cancel()
+
+	select {
+	case <-done:
+		return
+	case <-time.After(1 * time.Second):
+		t.Fatal("RunMatcher did not return after cancelation")
+	}
+}
