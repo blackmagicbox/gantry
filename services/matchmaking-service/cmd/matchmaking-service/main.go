@@ -68,7 +68,22 @@ func main() {
 		slog.Error("It was not possible to initialize the service listener", "error", err)
 		os.Exit(1)
 	}
+
+	match_interval, ok := os.LookupEnv("MATCH_INTERVAL")
+	if !ok {
+		slog.Error("MATCH_INTERVAL is not set")
+		os.Exit(1)
+	} else if match_interval == "" {
+		match_interval = "200ms"
+	}
+
 	q := queue.New()
+	duration, err := time.ParseDuration(match_interval)
+
+	// Run the Run matcher to start wacthing for players to match
+	go q.RunMatcher(ctx, duration, func(m queue.Match) {
+		slog.Info("match created", "match_id", m.ID)
+	})
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptors.UnaryAuthenticationInterceptor))
 	matchmakingv1.RegisterMatchmakingServiceServer(grpcServer, server.NewMatchmakingServer(q))
 
