@@ -17,7 +17,7 @@ func TestJoinQueueEnqueuePlayers(t *testing.T) {
 	ctx := interceptors.WithPlayerID(context.Background(), "player1")
 	resp, err := srv.JoinQueue(ctx, &matchmakingv1.JoinQueueRequest{})
 	if err != nil {
-		t.Errorf("Want nil, got %v", err)
+		t.Errorf("Want nil, got \"%v\"", err)
 	}
 	if resp.TicketId == "" {
 		t.Errorf("Want non-zero TicketId, got empty string")
@@ -50,14 +50,17 @@ func TestGetQueueStatusTicketStatusIsWaiting(t *testing.T) {
 
 	ctx := interceptors.WithPlayerID(context.Background(), "player1")
 
-	// _, err := srv.JoinQueue(ctx, &matchmakingv1.JoinQueueRequest{})
-	// if err != nil {
-	// 	t.Fatalf("expect err to be nil, but got %v instead", err)
-	// }
-
-	resp, err := srv.GetQueueStatus(ctx, &matchmakingv1.GetQueueStatusRequest{})
+	enqueueResp, err := srv.JoinQueue(ctx, &matchmakingv1.JoinQueueRequest{})
 	if err != nil {
 		t.Fatalf("expect err to be nil, but got %v instead", err)
+	}
+	if enqueueResp.TicketId == "" {
+		t.Fatalf("expect TicketId to be non-empty, but got empty string instead")
+	}
+
+	resp, err := srv.GetQueueStatus(ctx, &matchmakingv1.GetQueueStatusRequest{TicketId: enqueueResp.TicketId})
+	if err != nil {
+		t.Fatalf("expect err to be nil, but got \"%v\" instead", err)
 	}
 
 	if resp.Status != matchmakingv1.Status_STATUS_WAITING {
