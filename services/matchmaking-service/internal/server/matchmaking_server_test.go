@@ -31,6 +31,7 @@ func TestJoinQueueEnqueuePlayers(t *testing.T) {
 }
 
 func TestJoinQueueWithoutPlayerIDReturnsUnauthenticated(t *testing.T) {
+
 	q := queue.New()
 	srv := NewMatchmakingServer(q)
 	_, err := srv.JoinQueue(context.Background(), &matchmakingv1.JoinQueueRequest{})
@@ -39,5 +40,31 @@ func TestJoinQueueWithoutPlayerIDReturnsUnauthenticated(t *testing.T) {
 	}
 	if status.Code(err) != codes.Unauthenticated {
 		t.Errorf("Want Unauthenticated error, got %v", status.Code(err))
+	}
+
+}
+
+func TestGetQueueStatusTicketStatusIsWaiting(t *testing.T) {
+	q := queue.New()
+	srv := NewMatchmakingServer(q)
+
+	ctx := interceptors.WithPlayerID(context.Background(), "player1")
+
+	// _, err := srv.JoinQueue(ctx, &matchmakingv1.JoinQueueRequest{})
+	// if err != nil {
+	// 	t.Fatalf("expect err to be nil, but got %v instead", err)
+	// }
+
+	resp, err := srv.GetQueueStatus(ctx, &matchmakingv1.GetQueueStatusRequest{})
+	if err != nil {
+		t.Fatalf("expect err to be nil, but got %v instead", err)
+	}
+
+	if resp.Status != matchmakingv1.Status_STATUS_WAITING {
+		t.Errorf("expect status to be STATUS_WAITING, but got %v instead", resp.Status)
+	}
+
+	if resp.MatchId != "" {
+		t.Errorf("expect matchId to be empty, but got %v instead", resp.MatchId)
 	}
 }
