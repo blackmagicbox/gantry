@@ -44,7 +44,7 @@ func TestJoinQueueWithoutPlayerIDReturnsUnauthenticated(t *testing.T) {
 
 }
 
-func TestGetQueueStatusTicketStatusIsWaiting(t *testing.T) {
+func TestGetQueueStatusForAnUnMatchedTicket(t *testing.T) {
 	q := queue.New()
 	srv := NewMatchmakingServer(q)
 
@@ -69,5 +69,45 @@ func TestGetQueueStatusTicketStatusIsWaiting(t *testing.T) {
 
 	if resp.MatchId != "" {
 		t.Errorf("expect matchId to be empty, but got %v instead", resp.MatchId)
+	}
+}
+
+func TestGetQueueStatusWithMatchedTickets(t *testing.T) {
+	q := queue.New()
+
+	q.Enqueue("player1")
+	q.Enqueue("player2")
+
+	m, ok := q.TryMatch()
+	if !ok {
+		t.Fatalf("expected match to be possible (true), but got %v instead", ok)
+	}
+	t1, t2 := m.Tickets[0], m.Tickets[1]
+
+	srv := NewMatchmakingServer(q)
+	resp, err := srv.GetQueueStatus(context.Background(), &matchmakingv1.GetQueueStatusRequest{TicketId: t1.TicketID})
+	if err != nil {
+		t.Fatalf("expect err to be nil, but got \"%v\" instead", err)
+	}
+
+	if resp.Status != matchmakingv1.Status_STATUS_MATCHED {
+		t.Errorf("expect status to be STATUS_WAITING, but got %v instead", resp.Status)
+	}
+
+	if resp.MatchId == "" {
+		t.Error("expect matchId NOT to be empty, but got \"\" instead")
+	}
+
+	resp2, err := srv.GetQueueStatus(context.Background(), &matchmakingv1.GetQueueStatusRequest{TicketId: t2.TicketID})
+	if err != nil {
+		t.Fatalf("expect err to be nil, but got \"%v\" instead", err)
+	}
+
+	if resp2.Status != matchmakingv1.Status_STATUS_MATCHED {
+		t.Errorf("expect status to be STATUS_WAITING, but got %v instead", resp2.Status)
+	}
+
+	if resp2.MatchId == "" {
+		t.Error("expect matchId NOT to be empty, but got \"\" instead")
 	}
 }
