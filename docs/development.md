@@ -29,6 +29,18 @@ git add --renormalize .
 | `go mod tidy`                         | Add missing and remove unused dependencies                                                         |
 | `go run ./services/<name>/cmd/<name>` | Run one service, e.g. `duel-service`, `matchmaking-service`, `leaderboard-service`, `auth-service` |
 
+## Building a service binary
+
+Always pass `-o` so the binary lands in `bin/`, which is ignored by git:
+
+```
+go build -o bin/<service> ./services/<service>/cmd/<service>
+```
+
+For example, `go build -o bin/matchmaking-service ./services/matchmaking-service/cmd/matchmaking-service`. On Windows, use `-o bin/<service>.exe`.
+
+Without `-o`, `go build` writes the binary into the current directory, which is how compiled binaries ended up committed in the past. `.gitignore` catches binaries left inside service directories, but `bin/` is the place for them.
+
 ## Regenerating protobuf code
 
 After changing a `.proto` file:
